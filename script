@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Проверка на наличие репозитория Backports
+if ! grep -q "deb http://deb.debian.org/debian buster-backports main" /etc/apt/sources.list; then
+    echo "deb http://deb.debian.org/debian buster-backports main" >> /etc/apt/sources.list
+fi
+
+# Обновление пакетного менеджера
+apt update
+
+# Установка Apache2
+apt install -y apache2
+
+# Установка Python
+apt install -y python3
+
+# Установка и настройка SSH-сервера
+apt install -y openssh-server
+systemctl enable ssh
+systemctl start ssh
+
+# 1. Изменение конфигурации Apache2 для прослушивания на порту 8080
+sed -i 's/Listen 80/Listen 8080/g' /etc/apache2/ports.conf
+
+# 2. Создание директории для веб-сайта и изменение прав доступа
+mkdir /var/www/mywebsite
+chown -R www-data:www-data /var/www/mywebsite
+chmod -R 755 /var/www/mywebsite
+
+# 3. Добавление пользователя "myuser" и установка пароля
+useradd -m myuser
+echo "myuser:mypassword" | chpasswd
+
+# 4. Настройка SSH-сервера для запрета входа через пароль и разрешения только для пользователя "myuser"
+echo "PasswordAuthentication no" >> /etc/ssh/sshd_config
+echo "AllowUsers myuser" >> /etc/ssh/sshd_config
+systemctl restart ssh
+
+# 5. Установка и настройка Fail2Ban для защиты от атак на SSH
+apt install -y fail2ban
+systemctl enable fail2ban
+systemctl start fail2ban
+
+# Все действия выполнены
+echo "Система настроена успешно!"
+
